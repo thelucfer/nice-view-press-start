@@ -42,7 +42,7 @@ static void render_bluetooth_logo() {
 
 static void render_bluetooth_profile_index() {
 	
-	static const unsigned random = sys_rand32_get() & 1;
+	static int unsigned random = sys_rand32_get() & 1;
 	
     lv_draw_label_dsc_t label_dsc;
     lv_draw_label_dsc_init(&label_dsc);
