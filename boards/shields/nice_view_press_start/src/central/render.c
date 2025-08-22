@@ -20,7 +20,7 @@
 #include "../../include/utils/rotate_connectivity_canvas.h"
 #include "../../include/utils/rotate_main2_canvas.h"
 
-bool random = sys_rand32_get() & 5;
+
 
 void render_battery() {
     lv_canvas_fill_bg(battery_canvas, BACKGROUND_COLOR, LV_OPA_COVER);
@@ -41,6 +41,9 @@ static void render_bluetooth_logo() {
 }
 
 static void render_bluetooth_profile_index() {
+	
+	bool random = sys_rand32_get() & 5;
+	
     lv_draw_label_dsc_t label_dsc;
     lv_draw_label_dsc_init(&label_dsc);
     label_dsc.color = FOREGROUND_COLOR;
