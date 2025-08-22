@@ -1,23 +1,25 @@
-# nice!view Elemental
+# nice!view Press Play
 
 ![Banner](./assets/banner.png)
 
-The nice!view Elemental is a ZMK module that delivers a bold yet minimalistic interface for your keyboard's display.
+The nice!view Press Start is a retro-themed ZMK module based on https://github.com/kevinpastor/nice-view-elemental
 
-- Makes critical information **easy to read**;
-- Uses **custom fonts and icons**;
-- Provides a **subtle animation**;
-- **Optimized** to render as little as possible.
+What has been changed compared : 
+- Canvases were moved to make more room for **new animations**;
+- **New custom font** to match retro theme;
+- Provides a **fully vertical UI**;
+- **New animations** based on Pokemon Gold from GBC and Wild Gunmen from NES (Pegasus). 
+
+Didn't change things that were already perfect like battery and connectivity icons - **big big kudos** to https://github.com/kevinpastor for creating such good project. 
+I'm no developer, but it allowed me to learn enough coding to make this happen. 
 
 ## Gallery
 
-![Animation Preview](./assets/animation.gif)
-![Preview #2](./assets/preview_2.png)
-![Preview #3](./assets/preview_3.png)
+![Animation Preview](./assets/Animations.gif)
 
 ## Installation
 
-Only small changes are needed to your keyboard configuration's build setup. Then, you'll need to rebuild and flash your keyboard firmware.
+Few changes are needed to your keyboard configuration's build setup, rebuild and flash your keyboard firmware.
 
 1. In the `config/west.yml` file, add a new remote and its related project. 
 
@@ -33,24 +35,24 @@ manifest:
       remote: zmkfirmware
       revision: main
       import: app/west.yml
-+   - name: nice-view-elemental
++   - name: nice-view-press-start
 +     remote: Ziembski
 +     revision: main
   self:
     path: config
 ```
 
-2. In the `build.yaml` file, replace the `nice_view` shield with `nice_view_elemental`.
+2. In the `build.yaml` file, replace the `nice_view` shield with `nice_view_press_start`.
 
 ```diff
 ---
 include:
   - board: nice_nano_v2
 -   shield: corne_left nice_view_adapter nice_view
-+   shield: corne_left nice_view_adapter nice_view_elemental
++   shield: corne_left nice_view_adapter nice_view_press_start
   - board: nice_nano_v2
 -   shield: corne_right nice_view_adapter nice_view
-+   shield: corne_right nice_view_adapter nice_view_elemental
++   shield: corne_right nice_view_adapter nice_view_press_start
 ```
 
 3. Build the firmware, flash it to your keyboard, and enjoy!
@@ -59,15 +61,11 @@ include:
 
 ### Layer Name
 
-Displays the current layer name in all caps. By default, a shadow (a 4px innermost black outline) and an outline (a 1px outermost white outline) are added for easy readability.
-
-### Background
-
-Displays a noisy background animation that fades toward the screen edges.
+Since nice!view screens are actually horizontal, layer name had to be rotated to make it horizontal from users perspective.
 
 ### Battery
 
-Displays the battery remaining power and status.
+Displays the battery remaining power and status. **Kudos** to https://github.com/kevinpastor for creating them.
 
 | Pictogram                                            | Description                             |
 | ---------------------------------------------------- | --------------------------------------- |
@@ -76,7 +74,7 @@ Displays the battery remaining power and status.
 
 ### Connectivity
 
-Displays the connectivity status for both the central and peripheral halves.
+Displays the connectivity status for both the central and peripheral halves. **Kudos** to https://github.com/kevinpastor for creating them.
 
 #### Output
 
@@ -97,35 +95,20 @@ Displays the connectivity status for both the central and peripheral halves.
 
 | Config                                          | Type | Description                                                                                                       | Default |
 | ----------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------- | ------- |
-| `CONFIG_NICE_VIEW_ELEMENTAL_ANIMATION`          | bool | Enables the background animation.                                                                                 | y       |
-| `CONFIG_NICE_VIEW_ELEMENTAL_ANIMATION_FRAME_MS` | int  | Frame delay for the animation, in milliseconds.                                                                   | 250     |
-| `CONFIG_NICE_VIEW_ELEMENTAL_BACKGROUND`         | bool | Displays a background.                                                                                            | y       |
-| `CONFIG_NICE_VIEW_ELEMENTAL_OUTLINE`            | bool | Displays an outline around the shadow of the layer name. The outline is the 1px white line around the layer name. | y       |
-| `CONFIG_NICE_VIEW_ELEMENTAL_SHADOW`             | bool | Displays a shadow around the layer name. The shadow is the 4px black line around the layer name.                  | y       |
+| `CONFIG_NICE_VIEW_PRESS_START_ANIMATION`          | bool | Enables the background animation.                                                                                 | y       |
+| `CONFIG_NICE_VIEW_PRESS_START_ANIMATION_FRAME_MS` | int  | Frame delay for the animation, in milliseconds.                                                                   | 250     |
+| `CONFIG_NICE_VIEW_PRESS_START_BACKGROUND`         | bool | Displays a background.                                                                                            | y       |
 <!--
 | `CONFIG_NICE_VIEW_ELEMENTAL_CAPITALIZATION`     | bool | Enables full capitalization for the layer name.                                                                   | y       | 
 -->
 
-## How It Works
+## Playing on your split?
 
-> This implementation began with the nice!view shield source as a base. However, after numerous refactors, it has evolved into what could be considered a complete rewrite.
+Wild Gunmen can actually be "played" - try to press reset button when gunmen reach for the gun (his eyes shine) and see if you make it before flash! Almost like on NES.
 
-When the `CONFIG_ZMK_DISPLAY` setting is enabled, ZMK calls the `lv_obj_t* zmk_display_status_screen()` function. This function serves as the entry point for display customization, and the `nice_view` module has a definition for it. In the nice!view Elemental module, another definition of the function exists in `src/main.c`.
+## What's next?
 
-Because the firmware can be built for both the central and peripheral halves of the keyboard (which have slightly different display outputs), this module differentiates between them via the `void initialize_listeners()` function. This function is defined in the `src/central/initialize_listeners.c` file for the central half and in the `src/peripheral/initialize_listeners.c` file for the peripheral half. The `CMakeList.txt` file manages the selection between these, determining which files to include in each build.
-
-This module relies on both ZMK and LVGL for implementation. ZMK retrieves the current keyboard state, while LVGL, a graphics library, handles rendering.
-
-> From this point forward, we'll use the central half as an example, but the same principles apply to the peripheral half.
-
-In the main function, various canvases are initialized to facilitate rendering. The `initialize_listeners` function is called here, where all the main setup occurs.
-
-As the name implies, the `initialize_listeners` function initializes all configured listeners. Each listener is set up to respond to one or multiple events dispatched by ZMK. For example, the `zmk_layer_state_changed` event is triggered whenever the active layer changes. When an event is dispatched, one function retrieves the state necessary to process it, followed by another function that processes the event based on that state. In listener setup, the state is stored in a global variable, and a rendering function is subsequently called. Multiple rendering functions are defined, each responsible for rendering a small display segment (e.g., the layer name).
-
-At this point, LVGL steps in to handle the actual rendering. Rendering is managed by using a canvas to draw elements on the display. Though the nice!view display is often used vertically, it is horizontally oriented with a resolution of 160x68 pixels. Because everything draws horizontally, the canvas must be rotated when needed to accommodate the vertical orientation.
-
-Although LVGL is a robust library, I ran into some issues with version 8.3, the version currently provided by ZMK, which is slightly outdated. Text should theoretically render transparently on a canvas, but I couldn't get this to work reliably. Transparent text rendering would have allowed the background and layer name to be layered separately, avoiding unnecessary re-renders.
-
-To add shadow and outline effects to the layer name, I initially considered using dilated convolution. However, due to the limitation mentioned above and due to the issue of the background somewhat corrupting the layer name canvas, I opted to manually create custom font variants. These variants were created with [PixelForge](https://sergilazaro.itch.io/pixelforge) and exported with [the Font Converter tool](https://lvgl.io/tools/fontconverter) provided by LVGL. In the end, the layer name is rendered in three steps: first with a 5px-dilated white font, then with a 4px-dilated black font, and finally with the standard custom font in white. This leaves only one pixel of white for the outline because of the overlap.
-
-Some images were drawn pixel by pixel out of simplicity while other were drawn on [Photopea](https://www.photopea.com/) (a free web-based Photoshop alternative) and exported with [the Image Converter tool](https://lvgl.io/tools/imageconverter) provided again by LVGL.
+In future I plan to add :
+- more retro animations from games like Battletoads x Double Dragon, Duck Hunt and other, 
+- add randomization of animations,
+- change Wild Gunmen animation in a way that gun draw timing and firing speed is also randomized.
