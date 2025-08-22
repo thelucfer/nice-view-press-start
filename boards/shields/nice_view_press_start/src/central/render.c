@@ -43,8 +43,6 @@ static void render_bluetooth_logo() {
 static void render_bluetooth_profile_index() {
 	
 	
-	int unsigned random = sys_rand32_get() & 1;
-	
     lv_draw_label_dsc_t label_dsc;
     lv_draw_label_dsc_init(&label_dsc);
     label_dsc.color = FOREGROUND_COLOR;
@@ -56,7 +54,7 @@ static void render_bluetooth_profile_index() {
     static const char bluetooth_profile_label[5][2] = {"1", "2", "3", "4", "5"};
     const char* label = bluetooth_profile_label[states.connectivity.active_profile_index];
    
-    lv_canvas_draw_text(connectivity_canvas, 2, 16, width, &label_dsc, random);
+    lv_canvas_draw_text(connectivity_canvas, 2, 16, width, &label_dsc, label);
 }
 
 static void render_bluetooth_connectivity() {
