@@ -8,10 +8,6 @@
 #include <zephyr/kernel.h>
 #include "../../include/colors.h"
 #include "../../include/central/initialize_listeners.h"
-#include "../../include/fonts/custom_font_22.h"
-#include "../../include/fonts/custom_font_44.h"
-#include "../../include/fonts/custom_font_shadow.h"
-#include "../../include/fonts/custom_font_outline.h"
 #include "../../include/fonts/pixel_custom.h"
 #include "../../include/main.h"
 #include "../../include/utils/draw_battery.h"
