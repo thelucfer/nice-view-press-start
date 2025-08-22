@@ -1,7 +1,5 @@
 # nice!view Press Play
 
-![Banner](./assets/banner.png)
-
 The nice!view Press Start is a retro-themed ZMK module based on https://github.com/kevinpastor/nice-view-elemental
 
 What has been changed compared to Elemental : 
