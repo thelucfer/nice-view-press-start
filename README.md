@@ -4,7 +4,7 @@
 
 The nice!view Press Start is a retro-themed ZMK module based on https://github.com/kevinpastor/nice-view-elemental
 
-What has been changed compared : 
+What has been changed compared to Elemental : 
 - Canvases were moved to make more room for **new animations**;
 - **New custom font** to match retro theme;
 - Provides a **fully vertical UI**;
