@@ -6,6 +6,7 @@
 #include <string.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/kernel.h>
+#include <zephyr/random/random.h>
 #include "../../include/colors.h"
 #include "../../include/central/initialize_listeners.h"
 #include "../../include/fonts/pixel_custom.h"
@@ -19,6 +20,7 @@
 #include "../../include/utils/rotate_connectivity_canvas.h"
 #include "../../include/utils/rotate_main2_canvas.h"
 
+bool random = sys_rand32_get() & 5;
 
 void render_battery() {
     lv_canvas_fill_bg(battery_canvas, BACKGROUND_COLOR, LV_OPA_COVER);
@@ -50,7 +52,7 @@ static void render_bluetooth_profile_index() {
     static const char bluetooth_profile_label[5][2] = {"1", "2", "3", "4", "5"};
     const char* label = bluetooth_profile_label[states.connectivity.active_profile_index];
    
-    lv_canvas_draw_text(connectivity_canvas, 2, 16, width, &label_dsc, label);
+    lv_canvas_draw_text(connectivity_canvas, 2, 16, width, &label_dsc, random);
 }
 
 static void render_bluetooth_connectivity() {
