@@ -3,7 +3,6 @@ if(CONFIG_ZMK_DISPLAY AND CONFIG_NICE_VIEW_WIDGET_STATUS)
 
   zephyr_library_sources(
     ./src/main.c
-    ./src/fonts/custom_font_22.c
 	./src/fonts/pixel_custom.c
     ./src/images/animation1_0.c
     ./src/images/animation1_1.c
