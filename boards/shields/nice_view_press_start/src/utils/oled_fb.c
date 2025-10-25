@@ -183,9 +183,16 @@ void oled_init_fb(const char *display_label) {
     if (!oled_dev) {
         printk("oled_fb: WARNING: failed to bind any display device. oled_flush_fb will no-op.\n");
     } else {
-        /* Optionally log capabilities if the display driver exposes them */
+        /* Optionally log capabilities if the display driver exposes them.
+         *
+         * Call `display_get_capabilities` without comparing its return value,
+         * because different Zephyr versions expose this API with either an
+         * `int` return or `void`. After calling, inspect the capability fields
+         * to determine whether meaningful data was filled in.
+         */
         struct display_capabilities caps;
-        if (display_get_capabilities(oled_dev, &caps) == 0) {
+        (void)display_get_capabilities(oled_dev, &caps);
+        if (caps.x_resolution || caps.y_resolution || caps.screen_info) {
             printk("oled_fb: display capabilities: xres=%u yres=%u framebuffer=%s\n",
                    caps.x_resolution, caps.y_resolution,
                    (caps.screen_info & SCREEN_INFO_MONO_VTILED) ? "vtiled/mono" : "unknown");
