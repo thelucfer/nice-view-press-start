@@ -1,11 +1,1 @@
 /dts-v1/;
-/ {
-	/* nice_view_press_start.overlay - no-op overlay
-	 *
-	 * Intentionally empty. The Corne SSD1306 framebuffer port uses a separate
-	 * overlay file (overlay-ssd1306.dts) to enable the display. This file is
-	 * left as a harmless placeholder so boards/shields infrastructure that
-	 * expects a shield overlay can include it without injecting any device
-	 * tree nodes or undefined phandles.
-	 */
-};
