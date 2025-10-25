@@ -1,29 +1,11 @@
 /dts-v1/;
 / {
-	/*
-	 * nice_view_press_start.overlay
+	/* nice_view_press_start.overlay - no-op overlay
 	 *
-	 * Intentionally empty / no-op overlay for the nice_view_press_start shield.
-	 *
-	 * Background:
-	 * The original overlay enabled an LS0xx SPI display node using a symbol
-	 * `&nice_view_spi` and then set `zephyr,display` to point at that node.
-	 * In this Corne/SSD1306 framebuffer port we do not use the LS0xx SPI
-	 * display or the `&nice_view_spi` node. Leaving a reference to that
-	 * undefined symbol breaks device-tree processing (gen_defines.py).
-	 *
-	 * Therefore this overlay is left intentionally blank so it does not inject
-	 * any undefined phandles into the build. The SSD1306 framebuffer overlay
-	 * used by this shield is provided in:
-	 *   boards/shields/nice_view_press_start/overlay-ssd1306.dts
-	 *
-	 * Notes for maintainers:
-	 * - If you later re-enable the original LS0xx SPI display on hardware
-	 *   that actually has that controller, re-add a proper I2C/SPI controller
-	 *   binding (e.g. &nice_view_spi) in the board/device overlay and then
-	 *   restore the LS0xx node here.
-	 *
-	 * - Do NOT add a `&nice_view_spi` reference here unless the board DTS
-	 *   defines that node; otherwise devicetree generation will fail.
+	 * Intentionally empty. The Corne SSD1306 framebuffer port uses a separate
+	 * overlay file (overlay-ssd1306.dts) to enable the display. This file is
+	 * left as a harmless placeholder so boards/shields infrastructure that
+	 * expects a shield overlay can include it without injecting any device
+	 * tree nodes or undefined phandles.
 	 */
 };

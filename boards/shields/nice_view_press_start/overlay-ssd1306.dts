@@ -1,20 +1,23 @@
 /dts-v1/;
 
-/ {
-	/* Minimal safe 3.3V SSD1306 128x64 overlay for the Corne shield.
-	 *
-	 * Notes:
-	 * - Uses I2C controller &i2c1 by default. Change to &i2c0 / &i2c2 if your
-	 *   board uses a different controller.
-	 * - Uses I2C address 0x3C (common). Change `reg` to 0x3D if required.
-	 * - This overlay assumes the OLED is powered from the board 3.3V rail.
-	 *   Do NOT power the OLED from 5V unless the module explicitly supports it.
-	 *
-	 * The SSD1306 node is defined first, followed by aliases/chosen that
-	 * reference it. Placing the node before aliases avoids devicetree
-	 * forward-reference issues during gen_defines.py processing.
-	 */
-};
+/*
+ * overlay-ssd1306.dts
+ *
+ * Minimal safe 3.3V SSD1306 128x64 overlay for the Corne shield.
+ *
+ * Notes:
+ *  - Uses I2C controller &i2c1 by default. Change to &i2c0 / &i2c2 if your
+ *    board uses a different controller.
+ *  - Uses I2C address 0x3C (common). Change `reg` to 0x3D if required.
+ *  - This overlay assumes the OLED is powered from the board 3.3V rail.
+ *    Do NOT power the OLED from 5V unless the module explicitly supports it.
+ *
+ * Implementation details:
+ *  - Define the SSD1306 node first (under the referenced I2C controller) and
+ *    then provide a single root block containing `aliases` and `chosen` that
+ *    reference that node. This ordering avoids devicetree forward-reference
+ *    issues during gen_defines.py processing.
+ */
 
 /* Enable the I2C controller used by the OLED and add the SSD1306 node. */
 &i2c1 {
@@ -35,18 +38,8 @@
 		/* Keep node enabled */
 		status = "okay";
 
-		/* Optional notes:
-		 *
-		 * If your particular board/module exposes a reset or dc pin you can
-		 * add:
-		 *
-		 *	reset-gpios = <&gpioX Y GPIO_ACTIVE_LOW>;
-		 *
-		 * and if there's a regulator available you can bind it with
-		 *
-		 *	vcc-supply = <&vdd_3v3>;
-		 *
-		 * Only add those if you know the correct phandles and gpio indices.
+		/* Optional: if your module exposes a reset / dc pin or regulator,
+		 * add reset-gpios / vcc-supply entries here with the correct phandles.
 		 */
 	};
 };
@@ -57,7 +50,7 @@
 		ssd1306 = &ssd1306_0;
 	};
 
-	/* Some firmware setups look for a chosen display (zmk_display) */
+	/* Some firmware setups look for a chosen display node named zmk_display */
 	chosen {
 		zmk_display = &ssd1306_0;
 	};
