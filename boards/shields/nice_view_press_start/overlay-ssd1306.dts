@@ -1,36 +1,26 @@
 /dts-v1/;
+
 / {
-	/* overlay-ssd1306.dts
+	/* Minimal safe 3.3V SSD1306 128x64 overlay for the Corne shield.
 	 *
-	 * Minimal safe 3.3V SSD1306 128x64 overlay for the Corne shield.
+	 * Notes:
+	 * - Uses I2C controller &i2c1 by default. Change to &i2c0 / &i2c2 if your
+	 *   board uses a different controller.
+	 * - Uses I2C address 0x3C (common). Change `reg` to 0x3D if required.
+	 * - This overlay assumes the OLED is powered from the board 3.3V rail.
+	 *   Do NOT power the OLED from 5V unless the module explicitly supports it.
 	 *
-	 * Assumptions / notes:
-	 * - Uses I2C controller &i2c1. If your board uses a different controller
-	 *   (e.g. &i2c0) change the &i2c1 reference accordingly.
-	 * - Uses I2C address 0x3C (common). If your module is 0x3D change `reg`.
-	 * - This overlay does NOT change power routing. Power the OLED from the
-	 *   board 3.3V rail (safe default). Do NOT power the OLED from 5V unless
-	 *   you have confirmed the module accepts 5V.
-	 * - Adds an alias `ssd1306` and selects the node as the chosen display so
-	 *   runtime code using common DT fallbacks can find the display node.
+	 * The SSD1306 node is defined first, followed by aliases/chosen that
+	 * reference it. Placing the node before aliases avoids devicetree
+	 * forward-reference issues during gen_defines.py processing.
 	 */
-
-	aliases {
-		/* Make the node discoverable via DT_ALIAS(ssd1306) */
-		ssd1306 = &ssd1306_0;
-	};
-
-	chosen {
-		/* Some firmware setups look for a chosen display node named zmk_display */
-		zmk_display = &ssd1306_0;
-	};
 };
 
 /* Enable the I2C controller used by the OLED and add the SSD1306 node. */
 &i2c1 {
 	status = "okay";
 
-	/* Node name `ssd1306_0` used by aliases / chosen above. */
+	/* Node name `ssd1306_0` used by aliases / chosen below. */
 	ssd1306_0: ssd1306@3c {
 		compatible = "solomon,ssd1306fb";
 		reg = <0x3c>; /* I2C address */
@@ -58,5 +48,17 @@
 		 *
 		 * Only add those if you know the correct phandles and gpio indices.
 		 */
+	};
+};
+
+/ {
+	/* Make the node discoverable via DT_ALIAS(ssd1306) */
+	aliases {
+		ssd1306 = &ssd1306_0;
+	};
+
+	/* Some firmware setups look for a chosen display (zmk_display) */
+	chosen {
+		zmk_display = &ssd1306_0;
 	};
 };
