@@ -1,1 +1,14 @@
 /dts-v1/;
+
+/ {
+	/* Minimal no-op overlay for nice_view_press_start shield.
+	 *
+	 * This file intentionally does not declare any nodes or phandles.
+	 * It serves as a harmless placeholder so shield infrastructure that
+	 * expects an overlay can include this file without injecting any
+	 * device-tree fragments that might reference undefined labels.
+	 *
+	 * For the Corne SSD1306 framebuffer port the actual display node is
+	 * provided by: boards/shields/nice_view_press_start/overlay-ssd1306.dts
+	 */
+};
