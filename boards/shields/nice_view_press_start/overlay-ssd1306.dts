@@ -1,0 +1,62 @@
+/dts-v1/;
+/ {
+	/* overlay-ssd1306.dts
+	 *
+	 * Minimal safe 3.3V SSD1306 128x64 overlay for the Corne shield.
+	 *
+	 * Assumptions / notes:
+	 * - Uses I2C controller &i2c1. If your board uses a different controller
+	 *   (e.g. &i2c0) change the &i2c1 reference accordingly.
+	 * - Uses I2C address 0x3C (common). If your module is 0x3D change `reg`.
+	 * - This overlay does NOT change power routing. Power the OLED from the
+	 *   board 3.3V rail (safe default). Do NOT power the OLED from 5V unless
+	 *   you have confirmed the module accepts 5V.
+	 * - Adds an alias `ssd1306` and selects the node as the chosen display so
+	 *   runtime code using common DT fallbacks can find the display node.
+	 */
+
+	aliases {
+		/* Make the node discoverable via DT_ALIAS(ssd1306) */
+		ssd1306 = &ssd1306_0;
+	};
+
+	chosen {
+		/* Some firmware setups look for a chosen display node named zmk_display */
+		zmk_display = &ssd1306_0;
+	};
+};
+
+/* Enable the I2C controller used by the OLED and add the SSD1306 node. */
+&i2c1 {
+	status = "okay";
+
+	/* Node name `ssd1306_0` used by aliases / chosen above. */
+	ssd1306_0: ssd1306@3c {
+		compatible = "solomon,ssd1306fb";
+		reg = <0x3c>; /* I2C address */
+
+		label = "SSD1306_0";
+		width = <128>;
+		height = <64>;
+
+		/* rotation optional (0, 90, 180, 270) depending on physical mount */
+		rotation = <0>;
+
+		/* Keep node enabled */
+		status = "okay";
+
+		/* Optional notes:
+		 *
+		 * If your particular board/module exposes a reset or dc pin you can
+		 * add:
+		 *
+		 *	reset-gpios = <&gpioX Y GPIO_ACTIVE_LOW>;
+		 *
+		 * and if there's a regulator available you can bind it with
+		 *
+		 *	vcc-supply = <&vdd_3v3>;
+		 *
+		 * Only add those if you know the correct phandles and gpio indices.
+		 */
+	};
+};
