@@ -1,2 +1,10 @@
 config SHIELD_NICE_VIEW_PRESS_START
     def_bool $(shields_list_contains,nice_view_press_start)
+
+if SHIELD_NICE_VIEW_PRESS_START
+
+config NICE_VIEW_PRESS_START_OVERLAY
+    string "Device tree overlay for SSD1306"
+    default "boards/shields/nice_view_press_start/overlay-ssd1306.dts"
+
+endif

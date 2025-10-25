@@ -5,6 +5,19 @@
 #include <stddef.h>
 #include <string.h>
 
+/* Provide FB_BYTES compatibility alias for the framebuffer size used by the
+ * rest of the shield. Some translation units reference FB_BYTES; ensure it
+ * maps to SCREEN_FB_BYTES from main.h when not already defined.
+ */
+#ifndef FB_BYTES
+#define FB_BYTES SCREEN_FB_BYTES
+#endif
+
+/* Declare OLED framebuffer update helper prototype so this TU has a visible
+ * prototype and does not rely on implicit function declarations.
+ */
+int oled_update_framebuffer(void);
+
 /*
  * Framebuffer-based animation renderer for animation1.
  *
