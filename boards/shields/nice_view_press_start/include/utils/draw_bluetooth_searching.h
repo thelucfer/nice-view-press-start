@@ -1,5 +1,5 @@
 #pragma once
 
-#include <lvgl.h>
+#include <stdint.h>
 
-void draw_bluetooth_searching(lv_obj_t* canvas, lv_coord_t x, lv_coord_t y);
+void draw_bluetooth_searching(uint16_t x, uint16_t y);

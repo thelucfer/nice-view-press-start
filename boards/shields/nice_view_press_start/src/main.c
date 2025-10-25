@@ -1,121 +1,103 @@
+/*
+ * boards/shields/nice_view_press_start/src/main.c
+ *
+ * Framebuffer-based display initialization for the Corne SSD1306 128x64 port.
+ *
+ * This file replaces the previous LVGL-based `zmk_display_status_screen`
+ * provider with a minimal framebuffer initializer that:
+ *  - binds the SSD1306 display device,
+ *  - clears & draws a small test pattern to verify the wiring,
+ *  - calls the shield's listeners initialization so the rest of the UI logic
+ *    can start updating the `screen_buffer`.
+ *
+ * The original API in ZMK expects a function named `zmk_display_status_screen`.
+ * In the LVGL port this returned an `lv_obj_t *`. Since this shield build does
+ * not use LVGL we simply return NULL while still providing the initialization
+ * side-effects. The returned pointer is not used by the framebuffer-based
+ * implementation.
+ */
+
 #include "../include/main.h"
-#include <zephyr/kernel.h>
-
-#include <lvgl.h>
-#include "../include/initialize_listeners.h"
-
-
-lv_obj_t* battery_canvas;
-lv_color_t battery_canvas_buffer[
-    LV_CANVAS_BUF_SIZE_TRUE_COLOR(
-        BATTERY_CANVAS_WIDTH,
-        BATTERY_CANVAS_HEIGHT
-    )
-];
-
-lv_obj_t* connectivity_canvas;
-lv_color_t connectivity_canvas_buffer[
-    LV_CANVAS_BUF_SIZE_TRUE_COLOR(
-        CONNECTIVITY_CANVAS_WIDTH,
-        CONNECTIVITY_CANVAS_HEIGHT
-    )
-];
-
-lv_obj_t* main_canvas;
-lv_color_t main_canvas_buffer[
-    LV_CANVAS_BUF_SIZE_TRUE_COLOR(
-        MAIN_CANVAS_WIDTH,
-        MAIN_CANVAS_HEIGHT
-    )
-];
-
-lv_obj_t* main2_canvas;
-lv_color_t main2_canvas_buffer[
-    LV_CANVAS_BUF_SIZE_TRUE_COLOR(
-        MAIN2_CANVAS_WIDTH,
-        MAIN2_CANVAS_HEIGHT
-    )
-];
-
-// ZMK calls this function directly in `app/src/display/main.c` of its source
-// code.
-lv_obj_t* zmk_display_status_screen() {
-    // Setup the base screen.
-    lv_obj_t* screen = lv_obj_create(NULL);
-    lv_obj_set_size(screen, SCREEN_WIDTH, SCREEN_HEIGHT);
-	
-	
-#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
-	
-	// Create the main canvas to be used in the `render_main` function.
-    main_canvas = lv_canvas_create(screen);
-    lv_obj_align(main_canvas, LV_ALIGN_TOP_LEFT, -14, 0);
-    lv_canvas_set_buffer(
-        main_canvas,
-        main_canvas_buffer,
-        MAIN_CANVAS_WIDTH,
-        MAIN_CANVAS_HEIGHT,
-        LV_IMG_CF_TRUE_COLOR
-    );
-	
-#else
-	
-	// Create the main canvas to be used in the `render_main` function.
-    main_canvas = lv_canvas_create(screen);
-    lv_obj_align(main_canvas, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_canvas_set_buffer(
-        main_canvas,
-        main_canvas_buffer,
-        MAIN_CANVAS_WIDTH,
-        MAIN_CANVAS_HEIGHT,
-        LV_IMG_CF_TRUE_COLOR
-    );
-	
+#ifdef __has_include
+#  if __has_include(<zephyr/kernel.h>)
+#    include <zephyr/kernel.h>
+#  endif
 #endif
+#include <string.h>
 
-#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
-	
-    // Create the main2 canvas to be used in the `render_main2` function.
-    main2_canvas = lv_canvas_create(screen);
-    lv_obj_align(main2_canvas, LV_ALIGN_TOP_RIGHT, 34, 0);
-    lv_canvas_set_buffer(
-        main2_canvas,
-        main2_canvas_buffer,
-        MAIN2_CANVAS_WIDTH,
-        MAIN2_CANVAS_HEIGHT,
-        LV_IMG_CF_TRUE_COLOR
-    );
-#endif
+/* initialize_listeners provides the battery/ble listeners and hooks used by
+ * the renderers. The header lives in the shield include tree.
+ */
+#include "../include/central/initialize_listeners.h"
 
-    // Create the battery canvas to be used in the `render_battery` function.
-    battery_canvas = lv_canvas_create(screen);
-    lv_obj_align(battery_canvas, LV_ALIGN_TOP_RIGHT, 5, 0);
-    lv_canvas_set_buffer(
-        battery_canvas,
-        battery_canvas_buffer,
-        BATTERY_CANVAS_WIDTH,
-        BATTERY_CANVAS_HEIGHT,
-        LV_IMG_CF_TRUE_COLOR
-    );
-    
-    // Create the info canvas to be used in the `render_connectivity` function.
-    connectivity_canvas = lv_canvas_create(screen);
-    lv_obj_align(connectivity_canvas, LV_ALIGN_BOTTOM_RIGHT, 14, 0);
-    lv_canvas_set_buffer(
-        connectivity_canvas,
-        connectivity_canvas_buffer,
-        CONNECTIVITY_CANVAS_WIDTH,
-        CONNECTIVITY_CANVAS_HEIGHT,
-        LV_IMG_CF_TRUE_COLOR
-    );
+/* Provide a simple no-op typedef so any external references to `lv_obj_t*`
+ * signatures (from core ZMK headers or elsewhere) are compatible at the
+ * symbol level. This keeps link-time compatibility while avoiding LVGL.
+ *
+ * Note: this typedef is intentionally local to this translation unit.
+ */
+typedef void lv_obj_t;
 
+/* zmk_display_status_screen
+ *
+ * Called by ZMK to obtain the display root in the LVGL port. For the
+ * framebuffer port we use this call as an opportunity to:
+ *  - bind the OLED device (via oled_init_fb)
+ *  - draw a quick test pattern and flush it to the OLED
+ *  - initialize the shield listeners so rendering updates begin
+ *
+ * Returns: NULL (no LVGL screen object).
+ */
+lv_obj_t *zmk_display_status_screen(void) {
+    /* Bind the OLED device (use DT fallbacks inside the helper). */
+    oled_init_fb(NULL);
 
+    /* Clear the software framebuffer first. */
+    screen_fb_clear();
 
+    /* Draw a simple test pattern so users can verify wiring at boot:
+     * - a 2-pixel border
+     * - a small diagonal line
+     * - a central 8x8 checker to show inversion/packing clearly
+     */
+    const int W = SCREEN_WIDTH;
+    const int H = SCREEN_HEIGHT;
 
+    /* Border */
+    for (int x = 0; x < W; ++x) {
+        screen_fb_set_pixel(x, 0, true);
+        screen_fb_set_pixel(x, H - 1, true);
+    }
+    for (int y = 0; y < H; ++y) {
+        screen_fb_set_pixel(0, y, true);
+        screen_fb_set_pixel(W - 1, y, true);
+    }
 
-	
-    // Depending on which half the build is for, the implementation will differ.
+    /* Diagonal */
+    const int diag_len = (W < H) ? W : H;
+    for (int i = 2; i < diag_len - 2; i += 2) {
+        screen_fb_set_pixel(i, i, true);
+    }
+
+    /* Center checker (8x8) */
+    const int cx = W / 2 - 4;
+    const int cy = H / 2 - 4;
+    for (int yy = 0; yy < 8; ++yy) {
+        for (int xx = 0; xx < 8; ++xx) {
+            bool on = ((xx + yy) & 1) == 0;
+            screen_fb_set_pixel(cx + xx, cy + yy, on);
+        }
+    }
+
+    /* Flush the framebuffer to the OLED (no-op if device not bound). */
+    oled_flush_fb();
+
+    /* Initialize shield listeners (battery, BLE profile listeners, etc.). */
     initialize_listeners();
 
-    return screen;
+    /* The LVGL port returned an lv_obj_t* screen; in framebuffer mode we
+     * do not use LVGL, so return NULL. The important work is the init side
+     * effects performed above.
+     */
+    return NULL;
 }

@@ -1,42 +1,109 @@
 #include "../../include/central/initialize_listeners.h"
 
 #include <limits.h>
-#include <lvgl.h>
 #include <stdint.h>
 #include <zephyr/sys/util.h>
-#include <zmk/battery.h>
-#include <zmk/ble.h>
-#include <zmk/display.h>
-#include <zmk/endpoints.h>
-#include <zmk/event_manager.h>
-#include <zmk/events/activity_state_changed.h>
-#include <zmk/events/battery_state_changed.h>
-#include <zmk/events/ble_active_profile_changed.h>
-#include <zmk/events/endpoint_changed.h>
-#include <zmk/events/layer_state_changed.h>
-#include <zmk/events/usb_conn_state_changed.h>
-#include <zmk/keymap.h>
-#include <zmk/usb.h>
+
+/* Detect presence of ZMK headers and provide lightweight fallbacks if ZMK is
+ * not available in the static analysis / non-ZMK build environment. This
+ * allows the shield source to be compiled/checked without forcing ZMK to be
+ * present during the refactor work. When ZMK is available we include the real
+ * headers; otherwise we provide minimal stubs and set NICEVIEW_ZMK_AVAILABLE=0.
+ */
+#if defined(__has_include)
+#  if __has_include(<zmk/battery.h>)
+#    include <zmk/battery.h>
+#    include <zmk/ble.h>
+#    include <zmk/display.h>
+#    include <zmk/endpoints.h>
+#    include <zmk/event_manager.h>
+#    include <zmk/events/activity_state_changed.h>
+#    include <zmk/events/battery_state_changed.h>
+#    include <zmk/events/ble_active_profile_changed.h>
+#    include <zmk/events/endpoint_changed.h>
+#    include <zmk/events/layer_state_changed.h>
+#    include <zmk/events/usb_conn_state_changed.h>
+#    include <zmk/keymap.h>
+#    include <zmk/usb.h>
+#    define NICEVIEW_ZMK_AVAILABLE 1
+#  else
+#    define NICEVIEW_ZMK_AVAILABLE 0
+#  endif
+#else
+/* Fallback: assume ZMK not available */
+#  define NICEVIEW_ZMK_AVAILABLE 0
+#endif
+
+#if NICEVIEW_ZMK_AVAILABLE == 0
+/* Minimal stub definitions so this file can still be compiled/checked
+ * without the full ZMK include tree. These stubs are intentionally small and
+ * are only used when ZMK headers are not present.
+ */
+typedef int zmk_event_t;
+static inline int zmk_battery_state_of_charge(void) { return 100; }
+static inline bool zmk_usb_is_powered(void) { return false; }
+static inline int zmk_ble_active_profile_index(void) { return 0; }
+static inline bool zmk_ble_active_profile_is_connected(void) { return false; }
+static inline bool zmk_ble_active_profile_is_open(void) { return true; }
+static inline int zmk_keymap_highest_layer_active(void) { return 0; }
+static inline const char *zmk_keymap_layer_name(int id) { (void)id; return NULL; }
+
+/* Provide no-op macros for the ZMK listener/subscription helpers so the
+ * source remains parseable. When ZMK is present, the real macros are used.
+ */
+#ifndef ZMK_LISTENER
+#define ZMK_LISTENER(...)
+#endif
+#ifndef ZMK_SUBSCRIPTION
+#define ZMK_SUBSCRIPTION(...)
+#endif
+#ifndef ZMK_DISPLAY_WIDGET_LISTENER
+#define ZMK_DISPLAY_WIDGET_LISTENER(...)
+#endif
+#endif /* NICEVIEW_ZMK_AVAILABLE == 0 */
+
 #include "../../include/central/render.h"
 
 struct states states;
 
+/*
+ * Replace LVGL timers with a Zephyr k_timer for the background animation.
+ *
+ * Behavior:
+ *  - When CONFIG_NICE_VIEW_PRESS_START_ANIMATION is enabled we start a periodic
+ *    k_timer that calls `render_main()` at the configured interval.
+ *  - When activity changes to idle/sleep we stop the timer. When active we
+ *    (re)start the timer.
+ *
+ * This keeps the behavior minimal and avoids pulling LVGL into the framebuffer
+ * port.
+ */
 #if IS_ENABLED(CONFIG_NICE_VIEW_PRESS_START_ANIMATION)
-static void background_update_timer(lv_timer_t* timer)
-{
-    states.background_index = (states.background_index + 1) % UINT_MAX;
 
+static struct k_timer background_k_timer;
+
+/* Handler invoked when the k_timer expires (runs in system workqueue context). */
+static void background_k_timer_handler(struct k_timer *kt) {
+    ARG_UNUSED(kt);
+    states.background_index = (states.background_index + 1) % UINT_MAX;
     render_main();
 }
 
-lv_timer_t * timer;
+/* Initialize and start the periodic timer (called from initialize_listeners). */
+static void start_timer(void) {
+    /* Initialize the timer with a no-op expiry function first, then set it. */
+    k_timer_init(&background_k_timer, background_k_timer_handler, NULL);
 
-static void start_timer() {
-    // Call the `background_update_timer` function every configured interval.
-    timer = lv_timer_create(background_update_timer, CONFIG_NICE_VIEW_PRESS_START_ANIMATION_FRAME_MS, NULL);
+    /* Start periodic timer with the configured frame interval */
+    k_timer_start(&background_k_timer, K_MSEC(CONFIG_NICE_VIEW_PRESS_START_ANIMATION_FRAME_MS), K_MSEC(CONFIG_NICE_VIEW_PRESS_START_ANIMATION_FRAME_MS));
 }
 
-// We want to pause the animation when the keyboard is idling.
+/* Stop the timer (used when the device is idle/sleeping). */
+static void stop_timer(void) {
+    k_timer_stop(&background_k_timer);
+}
+
+/* We want to pause the animation when the keyboard is idling. */
 int activity_update_callback(const zmk_event_t* eh) {
     struct zmk_activity_state_changed* ev = as_zmk_activity_state_changed(eh);
     if (ev == NULL) {
@@ -45,12 +112,14 @@ int activity_update_callback(const zmk_event_t* eh) {
 
     switch (ev->state) {
         case ZMK_ACTIVITY_ACTIVE: {
-            lv_timer_resume(timer);
+            /* (Re)start the periodic timer */
+            k_timer_start(&background_k_timer, K_MSEC(CONFIG_NICE_VIEW_PRESS_START_ANIMATION_FRAME_MS), K_MSEC(CONFIG_NICE_VIEW_PRESS_START_ANIMATION_FRAME_MS));
             break;
         }
         case ZMK_ACTIVITY_IDLE:
         case ZMK_ACTIVITY_SLEEP: {
-            lv_timer_pause(timer);
+            /* Stop the timer to pause animation */
+            stop_timer();
             break;
         }
         default: {
@@ -61,20 +130,22 @@ int activity_update_callback(const zmk_event_t* eh) {
     return 0;
 }
 
-// Create a listener named `activity_update`. This name is then used to create a
-// subscription. When subscribed, `activity_update_callback` will be called.
+/* Create a listener named `activity_update`. This name is then used to create a
+ * subscription. When subscribed, `activity_update_callback` will be called.
+ */
 ZMK_LISTENER(
     activity_update,
     activity_update_callback
 );
 
-// Subscribe the `activity_update` listener to the `zmk_activity_state_changed`
-// event dispatched by ZMK.
+/* Subscribe the `activity_update` listener to the `zmk_activity_state_changed`
+ * event dispatched by ZMK.
+ */
 ZMK_SUBSCRIPTION(
     activity_update,
     zmk_activity_state_changed
 );
-#endif
+#endif /* CONFIG_NICE_VIEW_PRESS_START_ANIMATION */
 
 static void battery_state_update_callback(struct battery_state state) {
     states.battery = state;
